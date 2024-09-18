@@ -126,11 +126,6 @@ def create_parser():
     return parser
 
 def main():
-    """
-    Main function to demonstrate the use of dependent arguments.
-
-    This function parses the command-line arguments and prints the results.
-    """
     parser = create_parser()
     args = parser.parse_args()
 
