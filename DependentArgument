@@ -56,39 +56,3 @@ class DependentArgument(argparse.Action):
             setattr(namespace, self.dest, values)
         else:
             warnings.warn(f"Ignoring {option_string} because none of {', '.join(self.required_args)} are set.")
-
-def create_parser():
-    """
-    Create and configure the argument parser.
-
-    Returns:
-        argparse.ArgumentParser: The configured argument parser.
-    """
-    parser = argparse.ArgumentParser(description="Example script with dependent arguments.")
-    parser.add_argument('--primary1', action='store_true', help='First primary argument')
-    parser.add_argument('--primary2', action='store_true', help='Second primary argument')
-    parser.add_argument('--dependent', action=DependentArgument, required_args=['primary1', 'primary2'], 
-                        help='This argument is only used if either --primary1 or --primary2 is set')
-    return parser
-
-def main():
-    """
-    Main function to demonstrate the use of dependent arguments.
-
-    This function parses the command-line arguments and prints the results.
-    """
-    parser = create_parser()
-    args = parser.parse_args()
-
-    if args.primary1 or args.primary2:
-        print("At least one primary argument is set.")
-        if hasattr(args, 'dependent'):
-            print(f"Dependent argument is: {args.dependent}")
-        else:
-            print("Dependent argument was not provided.")
-    else:
-        print("No primary arguments are set.")
-        print("Dependent argument will be ignored even if provided.")
-
-if __name__ == "__main__":
-    main()
