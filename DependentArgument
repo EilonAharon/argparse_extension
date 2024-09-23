@@ -12,7 +12,7 @@ class DependentArgument(argparse.Action):
         required_args (list): The names of the arguments that this argument depends on.
     """
 
-    def __init__(self, option_strings, dest=None, required_args=None, **kwargs):
+    def __init__(self, option_strings, dest=None, required_args=None, nargs=None, **kwargs):
         """
         Initialize the DependentArgument action.
 
@@ -20,6 +20,7 @@ class DependentArgument(argparse.Action):
             option_strings (list): The option strings for the argument.
             dest (str): The name of the attribute to be added to the object returned by parse_args().
             required_args (list): The names of the arguments that this argument depends on.
+            nargs (int, str, argparse.REMAINDER): The number of command-line arguments that should be consumed.
             **kwargs: Additional keyword arguments passed to the Action constructor.
 
         Raises:
@@ -29,7 +30,12 @@ class DependentArgument(argparse.Action):
             raise ValueError("required_args must be a list of strings")
         
         self.required_args = required_args
-        super().__init__(option_strings, dest, **kwargs, nargs=0, default=argparse.SUPPRESS)
+
+        # If nargs is not specified, default to None (which means 1 argument)
+        if nargs is None:
+            nargs = None  # This means 1 argument in argparse
+        
+        super().__init__(option_strings, dest, nargs=nargs, **kwargs)
 
     def __call__(self, parser, namespace, values, option_string=None):
         """
@@ -40,7 +46,7 @@ class DependentArgument(argparse.Action):
         Args:
             parser (ArgumentParser): The ArgumentParser object.
             namespace (Namespace): The Namespace object that will be returned by parse_args().
-            values: The value of the argument.
+            values: The value(s) of the argument.
             option_string (str): The option string used to invoke this action.
         """
         setattr(namespace, f'_{self.dest}_details', (option_string, values, self))
@@ -55,7 +61,7 @@ class DependentArgument(argparse.Action):
         Args:
             namespace (Namespace): The Namespace object returned by parse_args().
         """
-        for name, value in vars(namespace).items():
+        for name, value in list(vars(namespace).items()):
             if name.startswith('_') and name.endswith('_details'):
                 option_string, values, action = getattr(namespace, name)
                 dest = name[1:-8]  # Remove leading '_' and trailing '_details'
@@ -65,6 +71,8 @@ class DependentArgument(argparse.Action):
                 else:
                     formatted_args = action.format_arg_names(namespace._parser)
                     warnings.warn(f"Ignoring {option_string} because none of {', '.join(formatted_args)} are set.")
+                
+                delattr(namespace, name)  # Clean up temporary attribute
 
     def format_arg_names(self, parser):
         """
@@ -84,4 +92,3 @@ class DependentArgument(argparse.Action):
                 else:
                     formatted_args.append(action.dest)  # Use the destination for positional arguments
         return formatted_args
-
