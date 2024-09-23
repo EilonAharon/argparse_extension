@@ -41,7 +41,7 @@ class DependentArgument(argparse.Action):
         """
         Called when the argument is encountered during argument parsing.
 
-        This method stores the option_string and values for later processing.
+        This method stores the option_string, values, and parser for later processing.
 
         Args:
             parser (ArgumentParser): The ArgumentParser object.
@@ -49,7 +49,7 @@ class DependentArgument(argparse.Action):
             values: The value(s) of the argument.
             option_string (str): The option string used to invoke this action.
         """
-        setattr(namespace, f'_{self.dest}_details', (option_string, values, self))
+        setattr(namespace, f'_{self.dest}_details', (option_string, values, self, parser))
 
     @classmethod
     def process_dependencies(cls, namespace):
@@ -63,14 +63,14 @@ class DependentArgument(argparse.Action):
         """
         for name, value in list(vars(namespace).items()):
             if name.startswith('_') and name.endswith('_details'):
-                option_string, values, action = getattr(namespace, name)
+                option_string, values, action, parser = getattr(namespace, name)
                 dest = name[1:-8]  # Remove leading '_' and trailing '_details'
 
                 if any(getattr(namespace, arg, None) for arg in action.required_args):
                     setattr(namespace, dest, values)
                 else:
-                    formatted_args = action.format_arg_names(namespace._parser)
-                    warnings.warn(f"Ignoring {option_string} because none of {', '.join(formatted_args)} are set.")
+                    formatted_args = action.format_arg_names(parser)
+                    warnings.warn(f"Ignoring {option_string} because none of [{', '.join(formatted_args)}] are set.")
                 
                 delattr(namespace, name)  # Clean up temporary attribute
 
