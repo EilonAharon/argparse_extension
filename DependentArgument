@@ -43,7 +43,7 @@ class DependentArgument(argparse.Action):
             values: The value of the argument.
             option_string (str): The option string used to invoke this action.
         """
-        setattr(namespace, f'_{self.dest}_details', (option_string, values))
+        setattr(namespace, f'_{self.dest}_details', (option_string, values, self))
 
     @classmethod
     def process_dependencies(cls, namespace):
@@ -57,18 +57,16 @@ class DependentArgument(argparse.Action):
         """
         for name, value in vars(namespace).items():
             if name.startswith('_') and name.endswith('_details'):
-                action = getattr(namespace, name)
+                option_string, values, action = getattr(namespace, name)
                 dest = name[1:-8]  # Remove leading '_' and trailing '_details'
-                option_string, values = action
 
-                if any(getattr(namespace, arg, None) for arg in cls.required_args):
+                if any(getattr(namespace, arg, None) for arg in action.required_args):
                     setattr(namespace, dest, values)
                 else:
-                    formatted_args = cls.format_arg_names(parser)
+                    formatted_args = action.format_arg_names(namespace._parser)
                     warnings.warn(f"Ignoring {option_string} because none of {', '.join(formatted_args)} are set.")
 
-    @staticmethod
-    def format_arg_names(parser):
+    def format_arg_names(self, parser):
         """
         Format the required argument names based on how they are configured in the parser.
 
@@ -80,9 +78,10 @@ class DependentArgument(argparse.Action):
         """
         formatted_args = []
         for action in parser._actions:
-            if action.dest in cls.required_args:
+            if action.dest in self.required_args:
                 if action.option_strings:
                     formatted_args.append(action.option_strings[0])  # Use the first option string
                 else:
                     formatted_args.append(action.dest)  # Use the destination for positional arguments
         return formatted_args
+
